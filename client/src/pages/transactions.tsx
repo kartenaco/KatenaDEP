@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowUpRight, ArrowDownRight, ArrowRightLeft, Search } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowUpRight, ArrowDownRight, ArrowRightLeft, Search } from "lucide-react";
 import type { Transaction, Account } from "@shared/schema";
 import { useState, useMemo } from "react";
 
@@ -74,6 +74,44 @@ export default function TransactionsPage() {
       toast({ title: "Transaction supprimée" });
     },
   });
+
+  const editMut = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const r = await apiRequest("PATCH", `/api/transactions/${id}`, data);
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/transactions", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/accounts", user?.id] });
+      toast({ title: "Transaction modifiée", description: "Les soldes ont été recalculés." });
+      setEditTx(null);
+    },
+  });
+
+  const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editDate, setEditDate] = useState("");
+
+  const openEditTx = (tx: Transaction) => {
+    setEditTx(tx);
+    setEditAmount(String(tx.amount));
+    setEditDesc(tx.description || "");
+    setEditDate(tx.date);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTx) return;
+    editMut.mutate({
+      id: editTx.id,
+      data: {
+        amount: parseFloat(editAmount),
+        description: editDesc || null,
+        date: editDate,
+      },
+    });
+  };
 
   const resetForm = () => {
     setForm({ type: "expense", accountId: "", toAccountId: "", category: "", description: "", amount: "", date: new Date().toISOString().split("T")[0], isRecurring: false, recurringFrequency: "monthly" });
@@ -327,6 +365,9 @@ export default function TransactionsPage() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">{tx.date}</p>
                   </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => openEditTx(tx)} data-testid={`edit-tx-${tx.id}`}>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => deleteMut.mutate(tx.id)} data-testid={`delete-tx-${tx.id}`}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
@@ -339,6 +380,83 @@ export default function TransactionsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Transaction Modal */}
+      <Dialog open={!!editTx} onOpenChange={(v) => { if (!v) setEditTx(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-4 h-4" />
+              Modifier la transaction
+            </DialogTitle>
+          </DialogHeader>
+          {editTx && (
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/50 text-sm space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant={editTx.type === "income" ? "default" : editTx.type === "transfer" ? "secondary" : "destructive"} className="text-[10px]">
+                    {editTx.type === "income" ? "Revenu" : editTx.type === "transfer" ? "Transfert" : "D\u00e9pense"}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">{editTx.category}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Compte : {accounts.find(a => a.id === editTx.accountId)?.name || "?"}
+                  {editTx.toAccountId && " \u279c " + (accounts.find(a => a.id === editTx.toAccountId)?.name || "?")}
+                </p>
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Montant</Label>
+                <div className="relative">
+                  <Input
+                    data-testid="edit-tx-amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    className="text-center text-lg font-bold h-12 pr-8"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    required
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">\u20ac</span>
+                </div>
+                {parseFloat(editAmount) !== editTx.amount && (
+                  <p className="text-xs mt-1">
+                    <span className="text-muted-foreground">Ancien montant : {editTx.amount.toFixed(2)} \u20ac</span>
+                    <span className={`ml-2 font-medium ${parseFloat(editAmount) > editTx.amount ? "text-red-500" : "text-emerald-500"}`}>
+                      ({parseFloat(editAmount) > editTx.amount ? "+" : ""}{(parseFloat(editAmount) - editTx.amount).toFixed(2)} \u20ac)
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Description</Label>
+                <Input
+                  data-testid="edit-tx-desc"
+                  placeholder="Description (optionnel)"
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Date</Label>
+                <Input
+                  data-testid="edit-tx-date"
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={editMut.isPending} data-testid="edit-tx-submit">
+                {editMut.isPending ? "Enregistrement..." : "Sauvegarder les modifications"}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

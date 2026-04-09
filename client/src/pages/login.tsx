@@ -5,7 +5,35 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { LogIn, UserPlus } from "lucide-react";
+import { LogIn, UserPlus, Eye, EyeOff } from "lucide-react";
+
+function PasswordInput({ value, onChange, placeholder, testId, ...props }: {
+  value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder: string; testId: string; [key: string]: any;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <Input
+        data-testid={testId}
+        type={show ? "text" : "password"}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="pr-10"
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={() => setShow(!show)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        data-testid={`${testId}-toggle`}
+      >
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -13,11 +41,9 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [loading, setLoading] = useState(false);
 
-  // Login form
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  // Register form
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
@@ -110,12 +136,11 @@ export default function LoginPage() {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                 />
-                <Input
-                  data-testid="input-password"
-                  type="password"
+                <PasswordInput
+                  testId="input-password"
                   placeholder="Mot de passe"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e: any) => setPassword(e.target.value)}
                   required
                 />
                 <Button data-testid="button-login" type="submit" className="w-full" disabled={loading}>
@@ -124,11 +149,7 @@ export default function LoginPage() {
                 </Button>
               </form>
               <div className="mt-4 text-center">
-                <button
-                  onClick={() => setMode("register")}
-                  className="text-sm text-primary hover:underline"
-                  data-testid="link-register"
-                >
+                <button onClick={() => setMode("register")} className="text-sm text-primary hover:underline" data-testid="link-register">
                   Pas encore de compte ? Créer un compte
                 </button>
               </div>
@@ -159,21 +180,19 @@ export default function LoginPage() {
                   required
                   minLength={3}
                 />
-                <Input
-                  data-testid="input-reg-password"
-                  type="password"
+                <PasswordInput
+                  testId="input-reg-password"
                   placeholder="Mot de passe (min 6 caractères)"
                   value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
+                  onChange={(e: any) => setRegPassword(e.target.value)}
                   required
                   minLength={6}
                 />
-                <Input
-                  data-testid="input-reg-confirm"
-                  type="password"
+                <PasswordInput
+                  testId="input-reg-confirm"
                   placeholder="Confirmer le mot de passe"
                   value={regConfirm}
-                  onChange={(e) => setRegConfirm(e.target.value)}
+                  onChange={(e: any) => setRegConfirm(e.target.value)}
                   required
                 />
                 <Button data-testid="button-register" type="submit" className="w-full" disabled={loading}>
@@ -182,18 +201,12 @@ export default function LoginPage() {
                 </Button>
               </form>
               <div className="mt-4 text-center">
-                <button
-                  onClick={() => setMode("login")}
-                  className="text-sm text-primary hover:underline"
-                  data-testid="link-login"
-                >
+                <button onClick={() => setMode("login")} className="text-sm text-primary hover:underline" data-testid="link-login">
                   Déjà un compte ? Se connecter
                 </button>
               </div>
             </>
           )}
-
-
         </CardContent>
       </Card>
     </div>

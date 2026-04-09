@@ -108,8 +108,48 @@ export async function registerRoutes(server: Server, app: Express) {
   });
 
   app.patch("/api/transactions/:id", async (req, res) => {
+    const oldTx = await storage.getTransaction(parseInt(req.params.id));
+    if (!oldTx) return res.status(404).json({ message: "Transaction non trouvée" });
+
+    // If amount changed, reverse old balance then apply new
+    const newAmount = req.body.amount !== undefined ? req.body.amount : oldTx.amount;
+    const amountChanged = req.body.amount !== undefined && req.body.amount !== oldTx.amount;
+
+    if (amountChanged) {
+      // Reverse old transaction effect
+      if (oldTx.type === "transfer") {
+        const src = await storage.getAccount(oldTx.accountId);
+        if (src) await storage.updateAccount(src.id, { balance: src.balance + oldTx.amount });
+        if (oldTx.toAccountId) {
+          const dst = await storage.getAccount(oldTx.toAccountId);
+          if (dst) await storage.updateAccount(dst.id, { balance: dst.balance - oldTx.amount });
+        }
+      } else {
+        const account = await storage.getAccount(oldTx.accountId);
+        if (account) {
+          const reversed = oldTx.type === "income" ? account.balance - oldTx.amount : account.balance + oldTx.amount;
+          await storage.updateAccount(account.id, { balance: reversed });
+        }
+      }
+
+      // Apply new amount
+      if (oldTx.type === "transfer") {
+        const src = await storage.getAccount(oldTx.accountId);
+        if (src) await storage.updateAccount(src.id, { balance: src.balance - newAmount });
+        if (oldTx.toAccountId) {
+          const dst = await storage.getAccount(oldTx.toAccountId);
+          if (dst) await storage.updateAccount(dst.id, { balance: dst.balance + newAmount });
+        }
+      } else {
+        const account = await storage.getAccount(oldTx.accountId);
+        if (account) {
+          const applied = oldTx.type === "income" ? account.balance + newAmount : account.balance - newAmount;
+          await storage.updateAccount(account.id, { balance: applied });
+        }
+      }
+    }
+
     const tx = await storage.updateTransaction(parseInt(req.params.id), req.body);
-    if (!tx) return res.status(404).json({ message: "Transaction non trouvée" });
     res.json(tx);
   });
 
