@@ -1,72 +1,72 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, serial, real, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Users
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email").notNull(),
   fullName: text("full_name").notNull(),
-  role: text("role").notNull().default("user"), // "user" | "admin"
+  role: text("role").notNull().default("user"),
   createdAt: text("created_at").notNull(),
 });
 
 // Bank accounts
-export const accounts = sqliteTable("accounts", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const accounts = pgTable("accounts", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   name: text("name").notNull(),
   type: text("type").notNull(),
   bankName: text("bank_name").notNull(),
-  balance: real("balance").notNull().default(0),
+  balance: doublePrecision("balance").notNull().default(0),
   color: text("color").notNull().default("#3B82F6"),
   icon: text("icon").notNull().default("wallet"),
 });
 
 // Transactions
-export const transactions = sqliteTable("transactions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   accountId: integer("account_id").notNull(),
   toAccountId: integer("to_account_id"),
   type: text("type").notNull(),
   category: text("category").notNull(),
   description: text("description"),
-  amount: real("amount").notNull(),
+  amount: doublePrecision("amount").notNull(),
   date: text("date").notNull(),
   isRecurring: integer("is_recurring").notNull().default(0),
   recurringFrequency: text("recurring_frequency"),
 });
 
 // Monthly snapshots
-export const monthlySnapshots = sqliteTable("monthly_snapshots", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const monthlySnapshots = pgTable("monthly_snapshots", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   accountId: integer("account_id").notNull(),
   month: text("month").notNull(),
-  openingBalance: real("opening_balance").notNull(),
-  closingBalance: real("closing_balance").notNull(),
-  totalIncome: real("total_income").notNull(),
-  totalExpenses: real("total_expenses").notNull(),
+  openingBalance: doublePrecision("opening_balance").notNull(),
+  closingBalance: doublePrecision("closing_balance").notNull(),
+  totalIncome: doublePrecision("total_income").notNull(),
+  totalExpenses: doublePrecision("total_expenses").notNull(),
 });
 
 // Projects (Kanban)
-export const projects = sqliteTable("projects", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   title: text("title").notNull(),
   description: text("description"),
   status: text("status").notNull().default("waiting"),
-  budget: real("budget"),
+  budget: doublePrecision("budget"),
   priority: text("priority").notNull().default("medium"),
   position: integer("position").notNull().default(0),
 });
 
 // Shared reports
-export const sharedReports = sqliteTable("shared_reports", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const sharedReports = pgTable("shared_reports", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   recipientEmail: text("recipient_email").notNull(),
   recipientName: text("recipient_name").notNull(),
@@ -75,8 +75,8 @@ export const sharedReports = sqliteTable("shared_reports", {
 });
 
 // Contact messages
-export const contactMessages = sqliteTable("contact_messages", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const contactMessages = pgTable("contact_messages", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id"),
   name: text("name").notNull(),
   email: text("email").notNull(),
@@ -87,24 +87,24 @@ export const contactMessages = sqliteTable("contact_messages", {
 });
 
 // Site settings (key-value)
-export const siteSettings = sqliteTable("site_settings", {
+export const siteSettings = pgTable("site_settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
 });
 
 // IP logs
-export const ipLogs = sqliteTable("ip_logs", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const ipLogs = pgTable("ip_logs", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   ip: text("ip").notNull(),
   userAgent: text("user_agent"),
-  action: text("action").notNull().default("login"), // "login" | "page_view"
+  action: text("action").notNull().default("login"),
   timestamp: text("timestamp").notNull(),
 });
 
 // Blocked IPs
-export const blockedIps = sqliteTable("blocked_ips", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const blockedIps = pgTable("blocked_ips", {
+  id: serial("id").primaryKey(),
   ip: text("ip").notNull().unique(),
   reason: text("reason"),
   blockedBy: integer("blocked_by").notNull(),

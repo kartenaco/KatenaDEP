@@ -9,48 +9,47 @@ function getClientIp(req: Request): string {
 }
 
 export async function registerRoutes(server: Server, app: Express) {
+  // Initialize database tables
+  await storage.init();
 
-  // === MAINTENANCE CHECK MIDDLEWARE ===
-  app.get("/api/maintenance/status", (req, res) => {
-    const enabled = storage.getSetting("maintenance_enabled") === "true";
-    const message = storage.getSetting("maintenance_message") || "Mise à jour en cours...";
-    const progress = parseInt(storage.getSetting("maintenance_progress") || "0");
+  // === MAINTENANCE STATUS ===
+  app.get("/api/maintenance/status", async (req, res) => {
+    const enabled = (await storage.getSetting("maintenance_enabled")) === "true";
+    const message = (await storage.getSetting("maintenance_message")) || "Mise à jour en cours...";
+    const progress = parseInt((await storage.getSetting("maintenance_progress")) || "0");
     res.json({ enabled, message, progress });
   });
 
   // === AUTH ===
-  app.post("/api/auth/login", (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     const { username, password } = req.body;
-    const user = storage.getUserByUsername(username);
+    const user = await storage.getUserByUsername(username);
     if (!user || user.password !== password) {
       return res.status(401).json({ message: "Identifiants incorrects" });
     }
-    // Check IP block
     const ip = getClientIp(req);
-    if (storage.isIpBlocked(ip) && user.role !== "admin") {
+    if ((await storage.isIpBlocked(ip)) && user.role !== "admin") {
       return res.status(403).json({ message: "Votre adresse IP a été bloquée. Contactez l'administrateur." });
     }
-    // Log IP
-    storage.logIp({
+    await storage.logIp({
       userId: user.id, ip, userAgent: req.headers["user-agent"] || null,
       action: "login", timestamp: new Date().toISOString(),
     });
     return res.json({ id: user.id, username: user.username, fullName: user.fullName, email: user.email, role: user.role });
   });
 
-  app.post("/api/auth/register", (req, res) => {
+  app.post("/api/auth/register", async (req, res) => {
     const { username, password, email, fullName } = req.body;
     if (!username || !password || !email || !fullName) {
       return res.status(400).json({ message: "Tous les champs sont obligatoires" });
     }
     if (username.length < 3) return res.status(400).json({ message: "Nom d'utilisateur trop court (min 3 caractères)" });
     if (password.length < 6) return res.status(400).json({ message: "Mot de passe trop court (min 6 caractères)" });
-    const existing = storage.getUserByUsername(username);
+    const existing = await storage.getUserByUsername(username);
     if (existing) return res.status(400).json({ message: "Nom d'utilisateur déjà pris" });
-    const user = storage.createUser({ username, password, email, fullName, role: "user", createdAt: new Date().toISOString() });
-    // Log IP
+    const user = await storage.createUser({ username, password, email, fullName, role: "user", createdAt: new Date().toISOString() });
     const ip = getClientIp(req);
-    storage.logIp({
+    await storage.logIp({
       userId: user.id, ip, userAgent: req.headers["user-agent"] || null,
       action: "login", timestamp: new Date().toISOString(),
     });
@@ -58,29 +57,26 @@ export async function registerRoutes(server: Server, app: Express) {
   });
 
   // === ACCOUNTS ===
-  app.get("/api/accounts/:userId", (req, res) => {
-    res.json(storage.getAccounts(parseInt(req.params.userId)));
+  app.get("/api/accounts/:userId", async (req, res) => {
+    res.json(await storage.getAccounts(parseInt(req.params.userId)));
   });
-
-  app.post("/api/accounts", (req, res) => {
-    res.json(storage.createAccount(req.body));
+  app.post("/api/accounts", async (req, res) => {
+    res.json(await storage.createAccount(req.body));
   });
-
-  app.patch("/api/accounts/:id", (req, res) => {
-    const account = storage.updateAccount(parseInt(req.params.id), req.body);
+  app.patch("/api/accounts/:id", async (req, res) => {
+    const account = await storage.updateAccount(parseInt(req.params.id), req.body);
     if (!account) return res.status(404).json({ message: "Compte non trouvé" });
     res.json(account);
   });
-
-  app.delete("/api/accounts/:id", (req, res) => {
-    storage.deleteAccount(parseInt(req.params.id));
+  app.delete("/api/accounts/:id", async (req, res) => {
+    await storage.deleteAccount(parseInt(req.params.id));
     res.json({ ok: true });
   });
 
   // === TRANSACTIONS ===
-  app.get("/api/transactions/:userId", (req, res) => {
+  app.get("/api/transactions/:userId", async (req, res) => {
     const { accountId, startDate, endDate, type } = req.query;
-    res.json(storage.getTransactions(parseInt(req.params.userId), {
+    res.json(await storage.getTransactions(parseInt(req.params.userId), {
       accountId: accountId ? parseInt(accountId as string) : undefined,
       startDate: startDate as string | undefined,
       endDate: endDate as string | undefined,
@@ -88,101 +84,99 @@ export async function registerRoutes(server: Server, app: Express) {
     }));
   });
 
-  app.post("/api/transactions", (req, res) => {
-    const tx = storage.createTransaction(req.body);
+  app.post("/api/transactions", async (req, res) => {
+    const tx = await storage.createTransaction(req.body);
     if (tx.type === "transfer") {
-      const src = storage.getAccount(tx.accountId);
-      if (src) storage.updateAccount(src.id, { balance: src.balance - tx.amount });
+      const src = await storage.getAccount(tx.accountId);
+      if (src) await storage.updateAccount(src.id, { balance: src.balance - tx.amount });
       if (tx.toAccountId) {
-        const dst = storage.getAccount(tx.toAccountId);
-        if (dst) storage.updateAccount(dst.id, { balance: dst.balance + tx.amount });
+        const dst = await storage.getAccount(tx.toAccountId);
+        if (dst) await storage.updateAccount(dst.id, { balance: dst.balance + tx.amount });
       }
     } else {
-      const account = storage.getAccount(tx.accountId);
+      const account = await storage.getAccount(tx.accountId);
       if (account) {
         const bal = tx.type === "income" ? account.balance + tx.amount : account.balance - tx.amount;
-        storage.updateAccount(account.id, { balance: bal });
+        await storage.updateAccount(account.id, { balance: bal });
       }
     }
     res.json(tx);
   });
 
-  app.patch("/api/transactions/:id", (req, res) => {
-    const tx = storage.updateTransaction(parseInt(req.params.id), req.body);
+  app.patch("/api/transactions/:id", async (req, res) => {
+    const tx = await storage.updateTransaction(parseInt(req.params.id), req.body);
     if (!tx) return res.status(404).json({ message: "Transaction non trouvée" });
     res.json(tx);
   });
 
-  app.delete("/api/transactions/:id", (req, res) => {
-    const tx = storage.getTransaction(parseInt(req.params.id));
+  app.delete("/api/transactions/:id", async (req, res) => {
+    const tx = await storage.getTransaction(parseInt(req.params.id));
     if (tx) {
       if (tx.type === "transfer") {
-        const src = storage.getAccount(tx.accountId);
-        if (src) storage.updateAccount(src.id, { balance: src.balance + tx.amount });
+        const src = await storage.getAccount(tx.accountId);
+        if (src) await storage.updateAccount(src.id, { balance: src.balance + tx.amount });
         if (tx.toAccountId) {
-          const dst = storage.getAccount(tx.toAccountId);
-          if (dst) storage.updateAccount(dst.id, { balance: dst.balance - tx.amount });
+          const dst = await storage.getAccount(tx.toAccountId);
+          if (dst) await storage.updateAccount(dst.id, { balance: dst.balance - tx.amount });
         }
       } else {
-        const account = storage.getAccount(tx.accountId);
+        const account = await storage.getAccount(tx.accountId);
         if (account) {
           const bal = tx.type === "income" ? account.balance - tx.amount : account.balance + tx.amount;
-          storage.updateAccount(account.id, { balance: bal });
+          await storage.updateAccount(account.id, { balance: bal });
         }
       }
     }
-    storage.deleteTransaction(parseInt(req.params.id));
+    await storage.deleteTransaction(parseInt(req.params.id));
     res.json({ ok: true });
   });
 
   // === SNAPSHOTS ===
-  app.get("/api/snapshots/:userId", (req, res) => {
+  app.get("/api/snapshots/:userId", async (req, res) => {
     const { accountId } = req.query;
-    res.json(storage.getSnapshots(parseInt(req.params.userId), accountId ? parseInt(accountId as string) : undefined));
+    res.json(await storage.getSnapshots(parseInt(req.params.userId), accountId ? parseInt(accountId as string) : undefined));
   });
-  app.post("/api/snapshots", (req, res) => { res.json(storage.createSnapshot(req.body)); });
+  app.post("/api/snapshots", async (req, res) => { res.json(await storage.createSnapshot(req.body)); });
 
   // === PROJECTS ===
-  app.get("/api/projects/:userId", (req, res) => { res.json(storage.getProjects(parseInt(req.params.userId))); });
-  app.post("/api/projects", (req, res) => { res.json(storage.createProject(req.body)); });
-  app.patch("/api/projects/:id", (req, res) => {
-    const prj = storage.updateProject(parseInt(req.params.id), req.body);
+  app.get("/api/projects/:userId", async (req, res) => { res.json(await storage.getProjects(parseInt(req.params.userId))); });
+  app.post("/api/projects", async (req, res) => { res.json(await storage.createProject(req.body)); });
+  app.patch("/api/projects/:id", async (req, res) => {
+    const prj = await storage.updateProject(parseInt(req.params.id), req.body);
     if (!prj) return res.status(404).json({ message: "Projet non trouvé" });
     res.json(prj);
   });
-  app.delete("/api/projects/:id", (req, res) => { storage.deleteProject(parseInt(req.params.id)); res.json({ ok: true }); });
+  app.delete("/api/projects/:id", async (req, res) => { await storage.deleteProject(parseInt(req.params.id)); res.json({ ok: true }); });
 
   // === SHARED REPORTS ===
-  app.get("/api/shared-reports/:userId", (req, res) => { res.json(storage.getSharedReports(parseInt(req.params.userId))); });
-  app.post("/api/shared-reports", (req, res) => {
-    res.json(storage.createSharedReport({ ...req.body, sentAt: new Date().toISOString() }));
+  app.get("/api/shared-reports/:userId", async (req, res) => { res.json(await storage.getSharedReports(parseInt(req.params.userId))); });
+  app.post("/api/shared-reports", async (req, res) => {
+    res.json(await storage.createSharedReport({ ...req.body, sentAt: new Date().toISOString() }));
   });
 
   // === CONTACT MESSAGES ===
-  app.get("/api/contact-messages", (req, res) => { res.json(storage.getContactMessages()); });
-  app.post("/api/contact-messages", (req, res) => {
-    const msg = storage.createContactMessage({ ...req.body, createdAt: new Date().toISOString() });
-    // Note: Real email sending requires SMTP config (nodemailer + Gmail app password)
-    // Messages are saved and visible in the admin panel
+  app.get("/api/contact-messages", async (req, res) => { res.json(await storage.getContactMessages()); });
+  app.post("/api/contact-messages", async (req, res) => {
+    const msg = await storage.createContactMessage({ ...req.body, createdAt: new Date().toISOString() });
     res.json(msg);
   });
-  app.patch("/api/contact-messages/:id", (req, res) => {
-    const msg = storage.updateContactMessageStatus(parseInt(req.params.id), req.body.status);
+  app.patch("/api/contact-messages/:id", async (req, res) => {
+    const msg = await storage.updateContactMessageStatus(parseInt(req.params.id), req.body.status);
     if (!msg) return res.status(404).json({ message: "Message non trouvé" });
     res.json(msg);
   });
 
   // === ADMIN ===
-  app.get("/api/admin/users", (req, res) => {
-    const allUsers = storage.getAllUsers();
+  app.get("/api/admin/users", async (req, res) => {
+    const allUsers = await storage.getAllUsers();
     res.json(allUsers.map(u => ({ ...u, password: "***" })));
   });
 
-  app.get("/api/admin/stats", (req, res) => {
-    const allUsers = storage.getAllUsers();
-    const msgs = storage.getContactMessages();
-    const blockedCount = storage.getBlockedIps().length;
-    const ipLogsCount = storage.getAllIpLogs().length;
+  app.get("/api/admin/stats", async (req, res) => {
+    const allUsers = await storage.getAllUsers();
+    const msgs = await storage.getContactMessages();
+    const blockedCount = (await storage.getBlockedIps()).length;
+    const ipLogsCount = (await storage.getAllIpLogs()).length;
     res.json({
       totalUsers: allUsers.length,
       newMessages: msgs.filter(m => m.status === "new").length,
@@ -192,54 +186,50 @@ export async function registerRoutes(server: Server, app: Express) {
     });
   });
 
-  // Admin: update user (password reset, email change, etc.)
-  app.patch("/api/admin/users/:id", (req, res) => {
+  app.patch("/api/admin/users/:id", async (req, res) => {
     const { password, email, fullName, role } = req.body;
     const data: any = {};
     if (password) data.password = password;
     if (email) data.email = email;
     if (fullName) data.fullName = fullName;
     if (role) data.role = role;
-    const user = storage.updateUser(parseInt(req.params.id), data);
+    const user = await storage.updateUser(parseInt(req.params.id), data);
     if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
     res.json({ ...user, password: "***" });
   });
 
-  // Admin: delete user
-  app.delete("/api/admin/users/:id", (req, res) => {
-    storage.deleteUser(parseInt(req.params.id));
+  app.delete("/api/admin/users/:id", async (req, res) => {
+    await storage.deleteUser(parseInt(req.params.id));
     res.json({ ok: true });
   });
 
-  // Admin: get user with full details (including password for recovery)
-  app.get("/api/admin/users/:id/details", (req, res) => {
-    const user = storage.getUser(parseInt(req.params.id));
+  app.get("/api/admin/users/:id/details", async (req, res) => {
+    const user = await storage.getUser(parseInt(req.params.id));
     if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
-    const accs = storage.getAccounts(user.id);
-    const txCount = storage.getTransactions(user.id).length;
-    const ips = storage.getIpLogs(user.id);
-    res.json({ user: { ...user, password: "***" }, accountsCount: accs.length, transactionsCount: txCount, ipLogs: ips });
+    const accs = await storage.getAccounts(user.id);
+    const txs = await storage.getTransactions(user.id);
+    const ips = await storage.getIpLogs(user.id);
+    res.json({ user: { ...user, password: "***" }, accountsCount: accs.length, transactionsCount: txs.length, ipLogs: ips });
   });
 
   // === MAINTENANCE ===
-  app.post("/api/admin/maintenance", (req, res) => {
+  app.post("/api/admin/maintenance", async (req, res) => {
     const { enabled, message, progress } = req.body;
-    if (typeof enabled === "boolean") storage.setSetting("maintenance_enabled", String(enabled));
-    if (message !== undefined) storage.setSetting("maintenance_message", message);
-    if (progress !== undefined) storage.setSetting("maintenance_progress", String(progress));
+    if (typeof enabled === "boolean") await storage.setSetting("maintenance_enabled", String(enabled));
+    if (message !== undefined) await storage.setSetting("maintenance_message", message);
+    if (progress !== undefined) await storage.setSetting("maintenance_progress", String(progress));
     res.json({
-      enabled: storage.getSetting("maintenance_enabled") === "true",
-      message: storage.getSetting("maintenance_message"),
-      progress: parseInt(storage.getSetting("maintenance_progress") || "0"),
+      enabled: (await storage.getSetting("maintenance_enabled")) === "true",
+      message: await storage.getSetting("maintenance_message"),
+      progress: parseInt((await storage.getSetting("maintenance_progress")) || "0"),
     });
   });
 
   // === IP LOGS ===
-  app.get("/api/admin/ip-logs", (req, res) => {
+  app.get("/api/admin/ip-logs", async (req, res) => {
     const { userId } = req.query;
-    const logs = userId ? storage.getIpLogs(parseInt(userId as string)) : storage.getAllIpLogs();
-    // Enrich with user data
-    const allUsers = storage.getAllUsers();
+    const logs = userId ? await storage.getIpLogs(parseInt(userId as string)) : await storage.getAllIpLogs();
+    const allUsers = await storage.getAllUsers();
     const enriched = logs.map(log => {
       const u = allUsers.find(u => u.id === log.userId);
       return { ...log, username: u?.username, fullName: u?.fullName };
@@ -248,22 +238,20 @@ export async function registerRoutes(server: Server, app: Express) {
   });
 
   // === BLOCKED IPS ===
-  app.get("/api/admin/blocked-ips", (req, res) => {
-    res.json(storage.getBlockedIps());
+  app.get("/api/admin/blocked-ips", async (req, res) => {
+    res.json(await storage.getBlockedIps());
   });
-
-  app.post("/api/admin/blocked-ips", (req, res) => {
+  app.post("/api/admin/blocked-ips", async (req, res) => {
     const { ip, reason, blockedBy } = req.body;
     try {
-      const blocked = storage.blockIp({ ip, reason: reason || null, blockedBy, blockedAt: new Date().toISOString() });
+      const blocked = await storage.blockIp({ ip, reason: reason || null, blockedBy, blockedAt: new Date().toISOString() });
       res.json(blocked);
     } catch {
       res.status(400).json({ message: "Cette IP est déjà bloquée" });
     }
   });
-
-  app.delete("/api/admin/blocked-ips/:id", (req, res) => {
-    storage.unblockIp(parseInt(req.params.id));
+  app.delete("/api/admin/blocked-ips/:id", async (req, res) => {
+    await storage.unblockIp(parseInt(req.params.id));
     res.json({ ok: true });
   });
 }
