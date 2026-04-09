@@ -184,7 +184,7 @@ export class DatabaseStorage implements IStorage {
     if (!admin) {
       await db.insert(users).values({
         username: "admin", password: "Kartena&CO2026!0thmaneTheo0@", email: "kartena.co@gmail.com",
-        fullName: "KatenaDEP Admin", role: "admin", createdAt: new Date().toISOString(),
+        fullName: "KartenaDEP Admin", role: "admin", createdAt: new Date().toISOString(),
       });
     }
     const kartena = await this.getUserByUsername("Kartena");
@@ -204,7 +204,7 @@ export class DatabaseStorage implements IStorage {
 
     await db.insert(users).values({
       username: "admin", password: "Kartena&CO2026!0thmaneTheo0@", email: "kartena.co@gmail.com",
-      fullName: "KatenaDEP Admin", role: "admin", createdAt: new Date().toISOString(),
+      fullName: "KartenaDEP Admin", role: "admin", createdAt: new Date().toISOString(),
     }).returning();
 
     const [banquePostale] = await db.insert(accounts).values({

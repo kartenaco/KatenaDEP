@@ -86,7 +86,7 @@ export default function ContactPage() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-3">
           <p><strong className="text-foreground">1. Responsable du traitement</strong><br />
-            KatenaDEP, application de gestion financière personnelle. Contact : KartenaDEP@gmail.com
+            KartenaDEP, application de gestion financière personnelle. Contact : KartenaDEP@gmail.com
           </p>
           <p><strong className="text-foreground">2. Données collectées</strong><br />
             Nous collectons les données que vous saisissez : nom, email, données financières (comptes, transactions, projets). Ces données sont nécessaires au fonctionnement de l'application.

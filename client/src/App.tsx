@@ -29,7 +29,7 @@ function MaintenancePage({ message, progress, userName, onLogout }: { message: s
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <div className="text-center max-w-md space-y-6">
-        <img src={logoImg} alt="KatenaDEP" className="w-20 h-20 rounded-2xl mx-auto" />
+        <img src={logoImg} alt="KartenaDEP" className="w-20 h-20 rounded-2xl mx-auto" />
         <div className="space-y-3">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground font-medium">{message}</p>
@@ -131,8 +131,8 @@ function AppLayout({ isAdmin, onLogout, userName }: { isAdmin: boolean; onLogout
         `}
       >
         <div className={`flex items-center gap-2 px-4 h-14 border-b border-sidebar-border ${collapsed ? "justify-center" : ""}`}>
-          <img src={logoImg} alt="KatenaDEP" className="w-8 h-8 rounded-lg" />
-          {!collapsed && <span className="font-bold text-sm">KatenaDEP</span>}
+          <img src={logoImg} alt="KartenaDEP" className="w-8 h-8 rounded-lg" />
+          {!collapsed && <span className="font-bold text-sm">KartenaDEP</span>}
         </div>
 
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
@@ -194,7 +194,7 @@ function AppLayout({ isAdmin, onLogout, userName }: { isAdmin: boolean; onLogout
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} data-testid="button-mobile-menu">
             <Menu className="w-5 h-5" />
           </Button>
-          <span className="font-bold text-sm">KatenaDEP</span>
+          <span className="font-bold text-sm">KartenaDEP</span>
         </div>
 
         <div className="p-4 md:p-6 max-w-7xl mx-auto">

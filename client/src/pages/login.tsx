@@ -97,8 +97,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md" data-testid="login-card">
         <CardHeader className="text-center space-y-4">
-          <img src={logoImg} alt="KatenaDEP" className="w-20 h-20 rounded-2xl mx-auto" />
-          <CardTitle className="text-xl font-bold">KatenaDEP</CardTitle>
+          <img src={logoImg} alt="KartenaDEP" className="w-20 h-20 rounded-2xl mx-auto" />
+          <CardTitle className="text-xl font-bold">KartenaDEP</CardTitle>
           <p className="text-sm text-muted-foreground">Gestion de vos finances personnelles</p>
         </CardHeader>
         <CardContent>
