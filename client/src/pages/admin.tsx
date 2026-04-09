@@ -29,6 +29,15 @@ interface BlockedIp {
   id: number; ip: string; reason: string | null; blockedBy: number; blockedAt: string;
 }
 
+const MAINTENANCE_STEPS = [
+  { id: "technique", icon: "🔧", label: "Maintenance technique", message: "🔧 Maintenance technique en cours. Le service sera rétabli sous peu.", progress: 10, color: "bg-amber-500" },
+  { id: "correction", icon: "🐛", label: "Correction en cours", message: "🐛 Correction d'un problème en cours. Merci de votre patience.", progress: 35, color: "bg-orange-500" },
+  { id: "mise-a-jour", icon: "📦", label: "Mise à jour", message: "📦 Installation de la mise à jour en cours...", progress: 55, color: "bg-blue-500" },
+  { id: "test", icon: "🧪", label: "Phase de test", message: "🧪 Phase de test en cours. Vérification des modules...", progress: 75, color: "bg-violet-500" },
+  { id: "finalisation", icon: "⚙️", label: "Finalisation", message: "⚙️ Finalisation et chargement des modules de mise à jour...", progress: 90, color: "bg-cyan-500" },
+  { id: "termine", icon: "✅", label: "Terminé", message: "✅ Mise à jour terminée ! Réouverture imminente.", progress: 100, color: "bg-emerald-500" },
+];
+
 export default function AdminPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -240,6 +249,7 @@ export default function AdminPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Toggle */}
               <div className="flex items-center gap-4 p-4 rounded-lg border">
                 <Switch
                   checked={maintenance?.enabled || false}
@@ -260,38 +270,60 @@ export default function AdminPage() {
                 <div className={`w-3 h-3 rounded-full ${maintenance?.enabled ? "bg-red-500 animate-pulse" : "bg-emerald-500"}`} />
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Message affiché aux utilisateurs</Label>
-                  <Textarea
-                    value={maintMsg}
-                    onChange={(e) => setMaintMsg(e.target.value)}
-                    placeholder="Mise à jour en cours..."
-                    rows={2}
-                    data-testid="input-maint-message"
-                  />
+              {/* Étapes prédéfinies */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block">Étape de maintenance</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {MAINTENANCE_STEPS.map((step) => {
+                    const active = maintMsg === step.message && maintProgress === String(step.progress);
+                    return (
+                      <button
+                        key={step.id}
+                        onClick={() => {
+                          setMaintMsg(step.message);
+                          setMaintProgress(String(step.progress));
+                          maintenanceMut.mutate({ message: step.message, progress: step.progress });
+                        }}
+                        className={`p-3 rounded-lg border text-left transition-all ${
+                          active ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:border-primary/50"
+                        }`}
+                        data-testid={`maint-step-${step.id}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">{step.icon}</span>
+                          <span className="text-xs font-semibold">{step.label}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{step.message}</p>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-2">
+                          <div className={`h-full rounded-full transition-all ${step.color}`} style={{ width: `${step.progress}%` }} />
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-1 tabular-nums">{step.progress}%</p>
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
+
+              {/* Message personnalisé */}
+              <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
+                <Label className="text-xs font-medium">Personnaliser</Label>
+                <Textarea
+                  value={maintMsg}
+                  onChange={(e) => setMaintMsg(e.target.value)}
+                  placeholder="Message personnalisé..."
+                  rows={2}
+                  data-testid="input-maint-message"
+                />
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">
-                    Progression ({maintProgress}%)
-                  </Label>
+                  <Label className="text-xs text-muted-foreground mb-1 block">Progression ({maintProgress}%)</Label>
                   <div className="flex items-center gap-3">
                     <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={maintProgress}
+                      type="range" min="0" max="100" value={maintProgress}
                       onChange={(e) => setMaintProgress(e.target.value)}
-                      className="flex-1 h-2 accent-primary"
-                      data-testid="input-maint-progress"
+                      className="flex-1 h-2 accent-primary" data-testid="input-maint-progress"
                     />
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={maintProgress}
-                      onChange={(e) => setMaintProgress(e.target.value)}
-                      className="w-20 h-8"
+                    <Input type="number" min="0" max="100" value={maintProgress}
+                      onChange={(e) => setMaintProgress(e.target.value)} className="w-20 h-8"
                     />
                   </div>
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden mt-2">
@@ -302,10 +334,30 @@ export default function AdminPage() {
                   onClick={() => maintenanceMut.mutate({ message: maintMsg, progress: parseInt(maintProgress) })}
                   disabled={maintenanceMut.isPending}
                   data-testid="button-save-maint"
+                  size="sm"
                 >
-                  Sauvegarder le message et la progression
+                  Appliquer
                 </Button>
               </div>
+
+              {/* Aperçu */}
+              {maintenance?.enabled && (
+                <div className="p-4 rounded-lg border border-dashed">
+                  <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wide font-medium">Aperçu utilisateur</p>
+                  <div className="text-center space-y-2">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+                    <p className="text-sm font-medium text-muted-foreground">{maintMsg}</p>
+                    {parseInt(maintProgress) > 0 && (
+                      <div className="max-w-xs mx-auto">
+                        <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${maintProgress}%` }} />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 tabular-nums">{maintProgress}%</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -354,18 +406,18 @@ export default function AdminPage() {
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditUser(u)} data-testid={`edit-user-${u.id}`}>
                         <KeyRound className="w-3.5 h-3.5" />
                       </Button>
-                      {u.role !== "admin" && !u.banned && (
+                      {u.id !== user!.id && !u.banned && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-500" onClick={() => { setBanUser(u); setBanReason(""); }} data-testid={`ban-user-${u.id}`} title="Suspendre le compte">
                           <Ban className="w-3.5 h-3.5" />
                         </Button>
                       )}
-                      {u.role !== "admin" && u.banned === 1 && (
+                      {u.id !== user!.id && u.banned === 1 && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500" onClick={() => unbanUserMut.mutate(u.id)} data-testid={`unban-user-${u.id}`} title="Réactiver le compte">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </Button>
                       )}
-                      {u.role !== "admin" && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { if (confirm(`Supprimer ${u.fullName} ?`)) deleteUserMut.mutate(u.id); }} data-testid={`delete-user-${u.id}`}>
+                      {u.id !== user!.id && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { if (confirm(`Supprimer ${u.fullName} ? Cette action est irréversible.`)) deleteUserMut.mutate(u.id); }} data-testid={`delete-user-${u.id}`}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       )}
