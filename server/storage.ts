@@ -185,10 +185,8 @@ export class DatabaseStorage implements IStorage {
     if (!kartena) {
       await db.insert(users).values({
         username: "Kartena", password: "Kartena&CO2026!0thmaneTheo0@", email: "blackbeardjimolita@gmail.com",
-        fullName: "Th\u00e9o Paris", role: "admin", createdAt: new Date().toISOString(),
+        fullName: "Th\u00e9o Paris", role: "user", createdAt: new Date().toISOString(),
       });
-    } else if (kartena.role !== "admin") {
-      await this.updateUser(kartena.id, { role: "admin" });
     }
   }
 
