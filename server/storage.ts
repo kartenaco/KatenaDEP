@@ -172,6 +172,15 @@ export class DatabaseStorage implements IStorage {
     if (count === 0) {
       await this.seedDemoData();
     }
+
+    // Always ensure admin exists
+    const admin = await this.getUserByUsername("admin");
+    if (!admin) {
+      await db.insert(users).values({
+        username: "admin", password: "Kartena&CO2026!0thmaneTheo0@", email: "kartena.co@gmail.com",
+        fullName: "KatenaDEP Admin", role: "admin", createdAt: new Date().toISOString(),
+      });
+    }
   }
 
   private async seedDemoData() {
@@ -181,7 +190,7 @@ export class DatabaseStorage implements IStorage {
     }).returning();
 
     await db.insert(users).values({
-      username: "admin", password: "Kartena&CO2026!0thmaneThé0@", email: "kartena.co@gmail.com",
+      username: "admin", password: "Kartena&CO2026!0thmaneTheo0@", email: "kartena.co@gmail.com",
       fullName: "KatenaDEP Admin", role: "admin", createdAt: new Date().toISOString(),
     }).returning();
 
