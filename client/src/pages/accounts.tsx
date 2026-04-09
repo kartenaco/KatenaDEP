@@ -166,10 +166,8 @@ export default function AccountsPage() {
       date: txForm.date,
       isRecurring: txForm.isRecurring ? 1 : 0,
       recurringFrequency: txForm.isRecurring ? txForm.recurringFrequency : null,
+      toAccountId: txForm.type === "transfer" && txForm.toAccountId ? parseInt(txForm.toAccountId) : null,
     };
-    if (txForm.type === "transfer" && txForm.toAccountId) {
-      payload.toAccountId = parseInt(txForm.toAccountId);
-    }
     createTxMut.mutate(payload);
   };
 

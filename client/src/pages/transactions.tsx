@@ -120,18 +120,17 @@ export default function TransactionsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload: any = {
-      ...form,
-      accountId: parseInt(form.accountId),
-      amount: parseFloat(form.amount),
       userId: user!.id,
+      accountId: parseInt(form.accountId),
+      type: form.type,
+      category: form.type === "transfer" ? "Transfert" : form.category,
+      description: form.description || null,
+      amount: parseFloat(form.amount),
+      date: form.date,
       isRecurring: form.isRecurring ? 1 : 0,
       recurringFrequency: form.isRecurring ? form.recurringFrequency : null,
-      description: form.description || null,
-      category: form.type === "transfer" ? "Transfert" : form.category,
+      toAccountId: form.type === "transfer" && form.toAccountId ? parseInt(form.toAccountId) : null,
     };
-    if (form.type === "transfer" && form.toAccountId) {
-      payload.toAccountId = parseInt(form.toAccountId);
-    }
     createMut.mutate(payload);
   };
 
