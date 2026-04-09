@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   fullName: text("full_name").notNull(),
   role: text("role").notNull().default("user"),
+  banned: integer("banned").notNull().default(0),
+  banReason: text("ban_reason"),
   createdAt: text("created_at").notNull(),
 });
 

@@ -27,6 +27,10 @@ export async function registerRoutes(server: Server, app: Express) {
     if (!user || user.password !== password) {
       return res.status(401).json({ message: "Identifiants incorrects" });
     }
+    // Check if banned
+    if (user.banned === 1) {
+      return res.status(403).json({ message: `Votre compte a été suspendu.${user.banReason ? " Raison : " + user.banReason : ""} Contactez l'administrateur.` });
+    }
     const ip = getClientIp(req);
     if ((await storage.isIpBlocked(ip)) && user.role !== "admin") {
       return res.status(403).json({ message: "Votre adresse IP a été bloquée. Contactez l'administrateur." });
@@ -201,6 +205,20 @@ export async function registerRoutes(server: Server, app: Express) {
   app.delete("/api/admin/users/:id", async (req, res) => {
     await storage.deleteUser(parseInt(req.params.id));
     res.json({ ok: true });
+  });
+
+  // Ban / Unban user
+  app.post("/api/admin/users/:id/ban", async (req, res) => {
+    const { reason } = req.body;
+    const user = await storage.updateUser(parseInt(req.params.id), { banned: 1, banReason: reason || "Non-respect du r\u00e8glement" } as any);
+    if (!user) return res.status(404).json({ message: "Utilisateur non trouv\u00e9" });
+    res.json({ ...user, password: "***" });
+  });
+
+  app.post("/api/admin/users/:id/unban", async (req, res) => {
+    const user = await storage.updateUser(parseInt(req.params.id), { banned: 0, banReason: null } as any);
+    if (!user) return res.status(404).json({ message: "Utilisateur non trouv\u00e9" });
+    res.json({ ...user, password: "***" });
   });
 
   app.get("/api/admin/users/:id/details", async (req, res) => {

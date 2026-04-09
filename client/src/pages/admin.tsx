@@ -113,6 +113,29 @@ export default function AdminPage() {
     },
   });
 
+  const banUserMut = useMutation({
+    mutationFn: async ({ id, reason }: { id: number; reason: string }) => {
+      const r = await apiRequest("POST", `/api/admin/users/${id}/ban`, { reason });
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "Compte suspendu" });
+      setBanUser(null);
+    },
+  });
+
+  const unbanUserMut = useMutation({
+    mutationFn: async (id: number) => {
+      const r = await apiRequest("POST", `/api/admin/users/${id}/unban`);
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "Compte réactivé" });
+    },
+  });
+
   const blockIpMut = useMutation({
     mutationFn: async (data: any) => {
       const r = await apiRequest("POST", "/api/admin/blocked-ips", data);
@@ -138,6 +161,8 @@ export default function AdminPage() {
   // Local state
   const [editUser, setEditUser] = useState<any>(null);
   const [editForm, setEditForm] = useState({ password: "", email: "", fullName: "" });
+  const [banUser, setBanUser] = useState<any>(null);
+  const [banReason, setBanReason] = useState("");
   const [maintMsg, setMaintMsg] = useState(maintenance?.message || "");
   const [maintProgress, setMaintProgress] = useState(String(maintenance?.progress || 0));
   const [blockIpValue, setBlockIpValue] = useState("");
@@ -308,13 +333,19 @@ export default function AdminPage() {
             <CardContent className="p-0">
               <div className="divide-y">
                 {users.map((u: any) => (
-                  <div key={u.id} className="flex items-center gap-3 px-4 py-3" data-testid={`admin-user-${u.id}`}>
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                  <div key={u.id} className={`flex items-center gap-3 px-4 py-3 ${u.banned ? "bg-red-500/5" : ""}`} data-testid={`admin-user-${u.id}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${u.banned ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary"}`}>
                       {u.fullName?.charAt(0) || "?"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{u.fullName}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{u.fullName}</p>
+                        {u.banned === 1 && <Badge variant="destructive" className="text-[9px] px-1.5 py-0">Suspendu</Badge>}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{u.email} · @{u.username}</p>
+                      {u.banned === 1 && u.banReason && (
+                        <p className="text-[10px] text-red-500 truncate">Raison : {u.banReason}</p>
+                      )}
                     </div>
                     <Badge variant={u.role === "admin" ? "default" : "secondary"} className="shrink-0">
                       {u.role === "admin" ? "Admin" : "Utilisateur"}
@@ -323,6 +354,16 @@ export default function AdminPage() {
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditUser(u)} data-testid={`edit-user-${u.id}`}>
                         <KeyRound className="w-3.5 h-3.5" />
                       </Button>
+                      {u.role !== "admin" && !u.banned && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-500" onClick={() => { setBanUser(u); setBanReason(""); }} data-testid={`ban-user-${u.id}`} title="Suspendre le compte">
+                          <Ban className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      {u.role !== "admin" && u.banned === 1 && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500" onClick={() => unbanUserMut.mutate(u.id)} data-testid={`unban-user-${u.id}`} title="Réactiver le compte">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                       {u.role !== "admin" && (
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { if (confirm(`Supprimer ${u.fullName} ?`)) deleteUserMut.mutate(u.id); }} data-testid={`delete-user-${u.id}`}>
                           <Trash2 className="w-3.5 h-3.5" />
@@ -502,6 +543,45 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Ban User Modal */}
+      <Dialog open={!!banUser} onOpenChange={(v) => { if (!v) setBanUser(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-500">
+              <Ban className="w-4 h-4" />
+              Suspendre le compte
+            </DialogTitle>
+          </DialogHeader>
+          {banUser && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20 text-sm">
+                <p>Vous allez suspendre le compte de <span className="font-semibold">{banUser.fullName}</span> (@{banUser.username}).</p>
+                <p className="text-xs text-muted-foreground mt-1">L'utilisateur ne pourra plus se connecter et verra la raison de la suspension.</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Raison de la suspension</Label>
+                <Textarea
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Non-respect du règlement, utilisation abusive..."
+                  rows={3}
+                  data-testid="input-ban-reason"
+                />
+              </div>
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={() => banUserMut.mutate({ id: banUser.id, reason: banReason || "Non-respect du règlement" })}
+                disabled={banUserMut.isPending}
+                data-testid="button-confirm-ban"
+              >
+                <Ban className="w-4 h-4 mr-2" /> Confirmer la suspension
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit User Modal */}
       <Dialog open={!!editUser} onOpenChange={(v) => { if (!v) setEditUser(null); }}>

@@ -74,6 +74,8 @@ export class DatabaseStorage implements IStorage {
         email TEXT NOT NULL,
         full_name TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'user',
+        banned INTEGER NOT NULL DEFAULT 0,
+        ban_reason TEXT,
         created_at TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS accounts (
@@ -157,6 +159,10 @@ export class DatabaseStorage implements IStorage {
         blocked_at TEXT NOT NULL
       );
     `);
+
+    // Migrations for existing DBs
+    try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banned INTEGER NOT NULL DEFAULT 0`); } catch {}
+    try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT`); } catch {}
 
     // Default settings
     const maint = await this.getSetting("maintenance_enabled");
