@@ -173,13 +173,22 @@ export class DatabaseStorage implements IStorage {
       await this.seedDemoData();
     }
 
-    // Always ensure admin exists
+    // Always ensure admin accounts exist
     const admin = await this.getUserByUsername("admin");
     if (!admin) {
       await db.insert(users).values({
         username: "admin", password: "Kartena&CO2026!0thmaneTheo0@", email: "kartena.co@gmail.com",
         fullName: "KatenaDEP Admin", role: "admin", createdAt: new Date().toISOString(),
       });
+    }
+    const kartena = await this.getUserByUsername("Kartena");
+    if (!kartena) {
+      await db.insert(users).values({
+        username: "Kartena", password: "Kartena&CO2026!0thmaneTheo0@", email: "blackbeardjimolita@gmail.com",
+        fullName: "Th\u00e9o Paris", role: "admin", createdAt: new Date().toISOString(),
+      });
+    } else if (kartena.role !== "admin") {
+      await this.updateUser(kartena.id, { role: "admin" });
     }
   }
 
