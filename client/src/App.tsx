@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 
 import LoginPage from "@/pages/login";
+import logoImg from "@assets/logo.jpg";
 import DashboardPage from "@/pages/dashboard";
 import AccountsPage from "@/pages/accounts";
 import TransactionsPage from "@/pages/transactions";
@@ -28,21 +29,7 @@ function MaintenancePage({ message, progress, userName, onLogout }: { message: s
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <div className="text-center max-w-md space-y-6">
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="mx-auto" aria-label="KatenaDEP Logo">
-          <rect width="64" height="64" rx="14" fill="hsl(210, 90%, 50%)" />
-          <g transform="translate(12, 8)">
-            <ellipse cx="20" cy="24" rx="18" ry="16" fill="hsl(40, 85%, 55%)" />
-            <ellipse cx="20" cy="24" rx="18" ry="16" fill="hsl(35, 80%, 48%)" opacity="0.4" />
-            <ellipse cx="20" cy="26" rx="13" ry="12" fill="hsl(40, 80%, 60%)" />
-            <ellipse cx="14" cy="23" rx="2.5" ry="2.5" fill="white" />
-            <ellipse cx="26" cy="23" rx="2.5" ry="2.5" fill="white" />
-            <circle cx="14.5" cy="23" r="1.5" fill="#1a1a2e" />
-            <circle cx="26.5" cy="23" r="1.5" fill="#1a1a2e" />
-            <ellipse cx="20" cy="29" rx="3" ry="2" fill="hsl(20, 40%, 35%)" />
-            <path d="M17 31 Q20 34 23 31" stroke="hsl(20, 40%, 35%)" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-          </g>
-        </svg>
-        <h1 className="text-2xl font-bold">KatenaDEP</h1>
+        <img src={logoImg} alt="KatenaDEP" className="w-20 h-20 rounded-2xl mx-auto" />
         <div className="space-y-3">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground font-medium">{message}</p>
@@ -144,30 +131,7 @@ function AppLayout({ isAdmin, onLogout, userName }: { isAdmin: boolean; onLogout
         `}
       >
         <div className={`flex items-center gap-2 px-4 h-14 border-b border-sidebar-border ${collapsed ? "justify-center" : ""}`}>
-          <svg width="30" height="30" viewBox="0 0 64 64" fill="none" aria-label="KatenaDEP Logo">
-            <rect width="64" height="64" rx="14" fill="hsl(210, 90%, 50%)" />
-            <g transform="translate(12, 8)">
-              <ellipse cx="20" cy="24" rx="18" ry="16" fill="hsl(40, 85%, 55%)" />
-              <ellipse cx="20" cy="24" rx="18" ry="16" fill="hsl(35, 80%, 48%)" opacity="0.4" />
-              <path d="M6 12 L2 6 L10 10Z" fill="hsl(35, 75%, 45%)" />
-              <path d="M14 7 L12 0 L18 6Z" fill="hsl(35, 75%, 45%)" />
-              <path d="M24 5 L26 -1 L28 6Z" fill="hsl(35, 75%, 45%)" />
-              <path d="M33 9 L38 4 L34 12Z" fill="hsl(35, 75%, 45%)" />
-              <path d="M36 16 L42 14 L37 20Z" fill="hsl(35, 75%, 45%)" />
-              <path d="M4 20 L-2 18 L4 24Z" fill="hsl(35, 75%, 45%)" />
-              <ellipse cx="20" cy="26" rx="13" ry="12" fill="hsl(40, 80%, 60%)" />
-              <ellipse cx="14" cy="23" rx="2.5" ry="2.5" fill="white" />
-              <ellipse cx="26" cy="23" rx="2.5" ry="2.5" fill="white" />
-              <circle cx="14.5" cy="23" r="1.5" fill="#1a1a2e" />
-              <circle cx="26.5" cy="23" r="1.5" fill="#1a1a2e" />
-              <ellipse cx="20" cy="29" rx="3" ry="2" fill="hsl(20, 40%, 35%)" />
-              <path d="M17 31 Q20 34 23 31" stroke="hsl(20, 40%, 35%)" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-              <ellipse cx="7" cy="16" rx="4" ry="5" fill="hsl(40, 80%, 55%)" />
-              <ellipse cx="7" cy="16" rx="2.5" ry="3" fill="hsl(350, 50%, 65%)" />
-              <ellipse cx="33" cy="16" rx="4" ry="5" fill="hsl(40, 80%, 55%)" />
-              <ellipse cx="33" cy="16" rx="2.5" ry="3" fill="hsl(350, 50%, 65%)" />
-            </g>
-          </svg>
+          <img src={logoImg} alt="KatenaDEP" className="w-8 h-8 rounded-lg" />
           {!collapsed && <span className="font-bold text-sm">KatenaDEP</span>}
         </div>
 
