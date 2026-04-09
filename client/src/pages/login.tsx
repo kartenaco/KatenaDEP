@@ -66,19 +66,6 @@ export default function LoginPage() {
     }
   };
 
-  const quickLogin = async (u: string, p: string) => {
-    setLoading(true);
-    try {
-      const res = await apiRequest("POST", "/api/auth/login", { username: u, password: p });
-      const user = await res.json();
-      login(user);
-    } catch {
-      toast({ title: "Erreur", description: "Connexion échouée", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md" data-testid="login-card">
@@ -206,30 +193,7 @@ export default function LoginPage() {
             </>
           )}
 
-          {/* Quick access */}
-          <div className="mt-6 pt-4 border-t space-y-2">
-            <p className="text-xs text-muted-foreground text-center mb-2">Accès rapide (démo)</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                data-testid="button-demo-user"
-                variant="outline"
-                size="sm"
-                onClick={() => quickLogin("demo", "demo123")}
-                disabled={loading}
-              >
-                Utilisateur
-              </Button>
-              <Button
-                data-testid="button-demo-admin"
-                variant="outline"
-                size="sm"
-                onClick={() => quickLogin("admin", "admin123")}
-                disabled={loading}
-              >
-                Admin
-              </Button>
-            </div>
-          </div>
+
         </CardContent>
       </Card>
     </div>

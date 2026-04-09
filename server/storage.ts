@@ -182,8 +182,8 @@ export class DatabaseStorage implements IStorage {
     }).returning().get();
 
     db.insert(users).values({
-      username: "admin", password: "admin123", email: "admin@katenadep.fr",
-      fullName: "Administrateur", role: "admin", createdAt: new Date().toISOString(),
+      username: "admin", password: "Kartena&CO2026!0thmaneThé0@", email: "kartena.co@gmail.com",
+      fullName: "KatenaDEP Admin", role: "admin", createdAt: new Date().toISOString(),
     }).returning().get();
 
     // Bank accounts
